@@ -1798,8 +1798,8 @@ class NovelDownloadThread(Thread):
         self.stop_requested = True
 
 
-# 小说下载器的主窗口类，负责提供用户界面和控制下载流程
-class NovelDownloader(BoxLayout):
+# 小说下载器主窗口类，作为Screen
+class NovelDownloader(Screen):
     url_input = ObjectProperty(None)
     tag_input = ObjectProperty(None)
     attr_input = ObjectProperty(None)
@@ -1817,7 +1817,9 @@ class NovelDownloader(BoxLayout):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.name = 'novel_download'
-        self.build_ui()  # 添加UI构建
+        self.layout = BoxLayout(orientation='vertical')
+        self.add_widget(self.layout)
+        self.build_ui()
 
     def build_ui(self):
         # 输入区域
@@ -1850,7 +1852,7 @@ class NovelDownloader(BoxLayout):
         self.total_chapters_input = TextInput(text="0", multiline=False)
         grid.add_widget(Label(text="总章节数(0自动估算):", size_hint_y=None, height=30))
         grid.add_widget(self.total_chapters_input)
-        self.add_widget(grid)
+        self.layout.add_widget(grid)
 
         # 按钮区域
         btn_layout = BoxLayout(orientation='horizontal', size_hint_y=None, height=40, spacing=10)
@@ -1860,17 +1862,17 @@ class NovelDownloader(BoxLayout):
         self.stop_btn.bind(on_press=self.stop_download)
         btn_layout.add_widget(self.download_btn)
         btn_layout.add_widget(self.stop_btn)
-        self.add_widget(btn_layout)
+        self.layout.add_widget(btn_layout)
 
         # 进度条
         self.progress_bar = ProgressBar(max=100, value=0, size_hint_y=None, height=30)
-        self.add_widget(self.progress_bar)
+        self.layout.add_widget(self.progress_bar)
 
         # 日志区域
         self.log_display = Label(text="", size_hint_y=1, halign="left", valign="top", text_size=(Window.width-40, None))
         scroll = ScrollView(size_hint=(1, 1))
         scroll.add_widget(self.log_display)
-        self.add_widget(scroll)
+        self.layout.add_widget(scroll)
 
     def start_download(self, instance):
         url = self.url_input.text.strip()
@@ -1960,7 +1962,7 @@ class MainApp(App) :
         sm.add_widget(AdminWindow())
         sm.add_widget(BackgroundSettingsWindow())
         sm.add_widget(NewsWindow())
-        sm.add_widget(NovelDownloader)
+        sm.add_widget(NovelDownloader())
 
         return sm
 
