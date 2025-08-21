@@ -226,14 +226,15 @@ class ToggleSwitch(Widget):
 
         # 绑定事件
         self.bind(
-            label_text=self._update_label_text,
-            size=self._update_positions,
-            pos=self._update_positions,
-            active=self._update_positions,
-            active_color=self._update_colors,
-            inactive_color=self._update_colors,
-            thumb_color=self._update_thumb_color
+            label_text = self._update_label_text ,
+            size = self._update_positions ,
+            pos = self._update_positions ,
+            active = self._update_positions ,
+            active_color = self._update_colors ,
+            inactive_color = self._update_colors ,
+            thumb_color = self._update_thumb_color ,
         )
+        self.bind(active = self._update_colors)  # 单独再绑定一次
         self.label.bind(size=self._update_positions)
         self._update_positions()
 

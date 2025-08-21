@@ -7,6 +7,7 @@ import shutil
 import hashlib
 import pickle
 import os
+from threading import Thread
 
 from kivy.animation import Animation
 from kivy.uix.anchorlayout import AnchorLayout
@@ -22,6 +23,7 @@ from kivy.config import Config
 from kivy.uix.filechooser import FileChooserListView
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.image import AsyncImage
+from kivy.uix.progressbar import ProgressBar
 from kivy.uix.scrollview import ScrollView
 
 Config.set('kivy' , 'default_font' , [
@@ -137,24 +139,18 @@ class BackgroundSettingsWindow(Screen) :
     def __init__(self , **kwargs) :
         super().__init__(**kwargs)
         self.name = 'background_settings'
-        self.color_buttons = []  # 存储所有颜色按钮，便于更新标记
+        self.color_buttons = []
         self.build_ui()
-
-        # 加载当前设置
         app = App.get_running_app()
         current_settings = BackgroundSettings.load_background_settings(app)
-        # 应用加载的设置
         self._apply_loaded_settings(current_settings)
 
     def _apply_loaded_settings(self , settings) :
-        """应用加载的设置并同步所有UI元素状态"""
         self.bg_mode = settings['mode']
         self.selected_color = settings['color']
         self.image_path = settings['image']
-
         self.update_mode_switches()
         self.update_color_markers()
-
         self.image_path_label.text = "未选择图片" if not self.image_path else os.path.basename(self.image_path)
         if self.image_path and os.path.exists(self.image_path) :
             self.image_preview.source = self.image_path
@@ -162,14 +158,12 @@ class BackgroundSettingsWindow(Screen) :
             self.image_preview.source = ""
 
     def build_ui(self) :
-        """构建背景设置窗口UI"""
         main_scroll = ScrollView(
             size_hint = (1 , 1) ,
             bar_width = dp(8) ,
             bar_color = [0.7 , 0.7 , 0.7 , 0.8] ,
             bar_inactive_color = [0.5 , 0.5 , 0.5 , 0.5]
         )
-
         main_layout = BoxLayout(
             orientation = 'vertical' ,
             padding = [dp(25) , dp(25)] ,
@@ -178,7 +172,6 @@ class BackgroundSettingsWindow(Screen) :
         )
         main_layout.bind(minimum_height = main_layout.setter('height'))
 
-        # 标题区域
         title_container = BoxLayout(
             size_hint_y = None ,
             height = dp(70) ,
@@ -196,31 +189,20 @@ class BackgroundSettingsWindow(Screen) :
         title_container.add_widget(title_label)
         main_layout.add_widget(title_container)
 
-        # 分隔线
         separator = Widget(size_hint_y = None , height = dp(5))
         with separator.canvas :
             Color(0.8 , 0.8 , 0.8 , 0.5)
             separator.rect = Rectangle(pos = separator.pos , size = separator.size)
-
-        def update_separator_pos(instance , value) :
-            instance.rect.pos = instance.pos
-
-        def update_separator_size(instance , value) :
-            instance.rect.size = instance.size
-
-        separator.bind(pos = update_separator_pos , size = update_separator_size)
+        separator.bind(pos = lambda i,v: setattr(separator.rect,'pos',i.pos), size = lambda i,v: setattr(separator.rect,'size',i.size))
         main_layout.add_widget(separator)
 
-        # 模式选择区域
         mode_section = BoxLayout(
             orientation = 'horizontal' ,
             size_hint_y = None ,
-            height = dp(100) ,  # 增加高度确保容纳
+            height = dp(100) ,
             spacing = dp(20) ,
             padding = [dp(20) , 0]
         )
-
-        # 颜色模式开关
         self.color_mode_switch = ToggleSwitch(
             label_text = '颜色背景' ,
             active = self.bg_mode == 'color' ,
@@ -228,8 +210,6 @@ class BackgroundSettingsWindow(Screen) :
             thumb_size = [dp(20) , dp(20)]
         )
         self.color_mode_switch.bind(active = self.on_color_mode_selected)
-
-        # 图片模式开关
         self.image_mode_switch = ToggleSwitch(
             label_text = '图片背景' ,
             active = self.bg_mode == 'image' ,
@@ -237,23 +217,19 @@ class BackgroundSettingsWindow(Screen) :
             thumb_size = [dp(20) , dp(20)]
         )
         self.image_mode_switch.bind(active = self.on_image_mode_selected)
-
-        # 模式容器布局
         mode_container = BoxLayout(
             orientation = 'vertical' ,
             size_hint_x = None ,
             width = dp(240) ,
             size_hint_y = None ,
-            spacing = dp(20)  # 增加间距
+            spacing = dp(20)
         )
         mode_container.bind(minimum_height = mode_container.setter('height'))
         mode_container.add_widget(self.color_mode_switch)
         mode_container.add_widget(self.image_mode_switch)
-
         mode_section.add_widget(mode_container)
         main_layout.add_widget(mode_section)
 
-        # 颜色选择区域
         color_section = BoxLayout(
             orientation = 'vertical' ,
             size_hint_y = None ,
@@ -269,13 +245,11 @@ class BackgroundSettingsWindow(Screen) :
             font_size = dp(18) ,
             color = (0 , 0 , 0 , 1)
         )
-
         color_grid_container = BoxLayout(
             size_hint_y = None ,
             padding = [dp(10) , 0] ,
             height = dp(220)
         )
-
         color_grid = GridLayout(
             cols = 7 ,
             rows = 3 ,
@@ -284,7 +258,6 @@ class BackgroundSettingsWindow(Screen) :
             size_hint_y = None ,
             height = dp(200)
         )
-
         colors = [
             (1 , 1 , 1 , 1) , (0.95 , 0.95 , 0.95 , 1) , (0.8 , 0.9 , 0.95 , 1) , (0.95 , 0.9 , 0.8 , 1) ,
             (0.9 , 0.95 , 0.8 , 1) , (0.95 , 0.8 , 0.8 , 1) , (0.8 , 0.8 , 0.95 , 1) ,
@@ -293,7 +266,6 @@ class BackgroundSettingsWindow(Screen) :
             (0.5 , 0.5 , 0.5 , 1) , (0.4 , 0.7 , 0.9 , 1) , (0.7 , 0.4 , 0.9 , 1) , (0.9 , 0.7 , 0.4 , 1) ,
             (0.7 , 0.9 , 0.4 , 1) , (0.9 , 0.4 , 0.4 , 1) , (0.4 , 0.4 , 0.9 , 1)
         ]
-
         for color in colors :
             color_btn = Button(
                 size_hint = (None , None) ,
@@ -302,7 +274,6 @@ class BackgroundSettingsWindow(Screen) :
                 background_normal = '' ,
                 border = (0 , 0 , 0 , 0)
             )
-
             with color_btn.canvas.before :
                 Color(0 , 0 , 0 , 0.15)
                 color_btn.shadow = RoundedRectangle(
@@ -310,7 +281,6 @@ class BackgroundSettingsWindow(Screen) :
                     size = (color_btn.size[0] , color_btn.size[1]) ,
                     radius = [dp(8)]
                 )
-
             with color_btn.canvas.after :
                 color_btn.marker_color = Color(0 , 0 , 0 , 0)
                 color_btn.marker_line = Line(
@@ -323,7 +293,6 @@ class BackgroundSettingsWindow(Screen) :
                     width = dp(2) ,
                     close = False
                 )
-
             def create_update_func(btn) :
                 def update_func(instance , value) :
                     setattr(instance , 'shadow' ,
@@ -334,27 +303,21 @@ class BackgroundSettingsWindow(Screen) :
                             )
                             )
                     self.update_marker_pos(instance , value)
-
                 return update_func
-
             update_func = create_update_func(color_btn)
             color_btn.bind(
                 pos = update_func ,
                 size = update_func
             )
-
             color_btn.bind(on_press = lambda btn , c=color : self.select_color(btn , c))
             color_grid.add_widget(color_btn)
             self.color_buttons.append(color_btn)
-
         color_grid_container.add_widget(color_grid)
         color_section.add_widget(color_label)
         color_section.add_widget(color_grid_container)
         main_layout.add_widget(color_section)
+        # main_layout.add_widget(Widget(size_hint_y = None , height = dp(80)))  # 可去掉
 
-        main_layout.add_widget(Widget(size_hint_y = None , height = dp(80)))
-
-        # 图片选择区域
         image_section = BoxLayout(
             orientation = 'vertical' ,
             size_hint_y = None ,
@@ -370,7 +333,6 @@ class BackgroundSettingsWindow(Screen) :
             font_size = dp(18) ,
             color = (0 , 0 , 0 , 1)
         )
-
         select_btn = RoundedButton(
             text = "选择图片" ,
             size_hint_y = None ,
@@ -382,7 +344,6 @@ class BackgroundSettingsWindow(Screen) :
             padding = [dp(20) , 0]
         )
         select_btn.bind(on_press = self.select_image)
-
         self.image_path_label = Label(
             text = "未选择图片" ,
             size_hint_y = None ,
@@ -391,14 +352,12 @@ class BackgroundSettingsWindow(Screen) :
             font_name = 'simhei.ttf' ,
             color = (0.3 , 0.3 , 0.3 , 1)
         )
-
         preview_container = BoxLayout(
             size_hint_y = None ,
             padding = [dp(10) , dp(5)] ,
             height = dp(250) ,
             orientation = 'vertical'
         )
-
         preview_hint = Label(
             text = "图片预览:" ,
             size_hint_y = None ,
@@ -407,7 +366,6 @@ class BackgroundSettingsWindow(Screen) :
             font_size = dp(14) ,
             color = (0.5 , 0.5 , 0.5 , 1)
         )
-
         preview_frame = AnchorLayout(
             size_hint_y = None ,
             height = dp(210) ,
@@ -418,8 +376,10 @@ class BackgroundSettingsWindow(Screen) :
             size_hint = (1 , 1)
         )
 
-        border_container.canvas.before.clear()
+        # 彻底修复黑块：用canvas.before画一个白色背景Rectangle，动态绑定pos/size
         with border_container.canvas.before :
+            Color(1 , 1 , 1 , 1)  # 白色背景
+            border_container.bg_rect = Rectangle(pos = border_container.pos , size = border_container.size)
             Color(0 , 0 , 0 , 0.1)
             border_container.shadow = RoundedRectangle(
                 pos = (border_container.x - dp(2) , border_container.y - dp(2)) ,
@@ -434,6 +394,8 @@ class BackgroundSettingsWindow(Screen) :
             )
 
         def update_preview_border(instance , value) :
+            instance.bg_rect.pos = instance.pos
+            instance.bg_rect.size = instance.size
             instance.shadow.pos = (instance.x - dp(2) , instance.y - dp(2))
             instance.shadow.size = (instance.size[0] + dp(4) , instance.size[1] + dp(4))
             instance.border_line.pos = instance.pos
@@ -441,8 +403,11 @@ class BackgroundSettingsWindow(Screen) :
 
         border_container.bind(pos = update_preview_border , size = update_preview_border)
 
+        # 图片预览控件
         self.image_preview = AsyncImage(
-            size_hint = (None , None) ,
+            size_hint = (1 , 1) ,
+            allow_stretch = True ,
+            keep_ratio = True ,
             fit_mode = "contain"
         )
 
@@ -456,9 +421,7 @@ class BackgroundSettingsWindow(Screen) :
         image_section.add_widget(preview_container)
         main_layout.add_widget(image_section)
 
-        main_layout.add_widget(Widget(size_hint_y = None , height = dp(50)))
-
-        # 按钮区域
+        # main_layout.add_widget(Widget(size_hint_y = None , height = dp(50)))  # 可去掉
         btn_layout = BoxLayout(
             orientation = 'horizontal' ,
             size_hint_y = None ,
@@ -466,7 +429,6 @@ class BackgroundSettingsWindow(Screen) :
             spacing = dp(40) ,
             padding = [dp(20) , dp(10)]
         )
-
         cancel_btn = RoundedButton(
             text = "取消" ,
             size_hint_x = 0.5 ,
@@ -477,7 +439,6 @@ class BackgroundSettingsWindow(Screen) :
             padding = [dp(10) , 0]
         )
         cancel_btn.bind(on_press = self.go_back)
-
         confirm_btn = RoundedButton(
             text = "保存" ,
             size_hint_x = 0.5 ,
@@ -488,29 +449,23 @@ class BackgroundSettingsWindow(Screen) :
             padding = [dp(10) , 0]
         )
         confirm_btn.bind(on_press = self.on_confirm)
-
         btn_layout.add_widget(cancel_btn)
         btn_layout.add_widget(confirm_btn)
         main_layout.add_widget(btn_layout)
-
-        main_layout.add_widget(Widget(size_hint_y = None , height = dp(30)))
 
         main_scroll.add_widget(main_layout)
         self.add_widget(main_scroll)
 
     def _sync_modes(self) :
-        """同步两个开关的互斥状态"""
         active = self.bg_mode == 'color'
         self.color_mode_switch.active = active
         self.image_mode_switch.active = not active
 
     def update_mode_switches(self) :
-        """根据当前bg_mode更新切换开关状态"""
         self.color_mode_switch.active = self.bg_mode == 'color'
         self.image_mode_switch.active = self.bg_mode == 'image'
 
     def _update_preview(self) :
-        """更新图片预览区域"""
         if self.bg_mode == 'image' and os.path.exists(self.image_path) :
             self.image_preview.source = self.image_path
             self.image_preview.reload()
@@ -531,9 +486,7 @@ class BackgroundSettingsWindow(Screen) :
             self._update_preview()
 
     def update_marker_pos(self , instance , value) :
-        """更新标记的位置和大小"""
         instance.marker_line.circle = (instance.center_x , instance.center_y , dp(11))
-
         if instance.background_color == self.selected_color :
             center_x , center_y = instance.center_x , instance.center_y
             instance.check.points = [
@@ -545,7 +498,6 @@ class BackgroundSettingsWindow(Screen) :
             instance.check.points = []
 
     def update_color_markers(self) :
-        """更新所有颜色按钮的标记状态"""
         for btn in self.color_buttons :
             if btn.background_color == self.selected_color :
                 btn.marker_color.rgba = (0.2 , 0.6 , 0.2 , 1)
@@ -560,15 +512,12 @@ class BackgroundSettingsWindow(Screen) :
                 btn.check.points = []
 
     def select_color(self , instance , color) :
-        """选择颜色并更新标记"""
         self.selected_color = color
         self.bg_mode = 'color'
         self.update_mode_switches()
         self.update_color_markers()
 
     def select_image(self , instance) :
-        """选择背景图片"""
-
         def on_select(selection) :
             if selection and selection[0] :
                 self.image_path = os.path.abspath(selection[0])
@@ -577,12 +526,10 @@ class BackgroundSettingsWindow(Screen) :
                 self.image_path_label.text = os.path.basename(self.image_path)
                 self.image_preview.source = self.image_path
             popup.dismiss()
-
         file_chooser = FileChooserListView(
             filters = ['*.png' , '*.jpg' , '*.jpeg' , '*.bmp'] ,
             path = os.path.expanduser('~')
         )
-
         select_btn = RoundedButton(
             text = "选择" ,
             size_hint_y = None ,
@@ -591,11 +538,9 @@ class BackgroundSettingsWindow(Screen) :
             radius = dp(20)
         )
         select_btn.bind(on_press = lambda x : on_select(file_chooser.selection))
-
         main_layout = BoxLayout(orientation = 'vertical')
         main_layout.add_widget(file_chooser)
         main_layout.add_widget(select_btn)
-
         popup = Popup(
             title = "选择背景图片" ,
             content = main_layout ,
@@ -605,33 +550,28 @@ class BackgroundSettingsWindow(Screen) :
 
     def on_confirm(self , instance) :
         app = App.get_running_app()
-
         if self.bg_mode == 'image' :
             if not self.image_path or not os.path.isfile(self.image_path) :
                 popup = CustomDialog("请选择有效的图片文件" , title = "验证错误" , button_text = "重新选择")
                 popup.open()
                 return
-
         settings = {
             'mode' : self.bg_mode ,
             'color' : self.selected_color ,
             'image' : self.image_path if self.bg_mode == 'image' else ""
         }
         BackgroundSettings.save_background_settings(app , settings['mode'] , settings['color'] , settings['image'])
-
         login_screen = self.manager.get_screen('login') if 'login' in self.manager.screens else None
         if login_screen :
             BackgroundSettings.apply_settings_to_screen(login_screen , settings)
             if hasattr(login_screen , 'update_background') :
                 login_screen.update_background(None , None)
-
         self.go_back(None)
 
     def go_back(self , instance) :
         if hasattr(self , 'manager') :
             self.manager.transition = SlideTransition(direction = 'right')
             self.manager.current = 'main_menu'
-
 
 # 主窗口类(登录界面)
 class MainWindow(Screen) :
@@ -1287,8 +1227,8 @@ class MenuWindow(Screen) :
         self.manager.current = 'news'
 
     def quick_download_txt(self , instance) :
-        popup = CustomDialog("小说下载功能开发中" , title = "提示" , button_text = "知道了")
-        popup.open()
+        self.manager.transition = SlideTransition(direction = 'left')
+        self.manager.current = 'novel_download'
 
     def a_BrowserWindow_example(self , instance) :
         popup = CustomDialog("浏览器功能开发中" , title = "提示" , button_text = "知道了")
@@ -1789,6 +1729,225 @@ class NewsWindow(Screen):
         self.manager.current = 'main_menu'
 
 
+# 小说下载线程，处理耗时的下载操作
+class NovelDownloadThread(Thread):
+    def __init__(self, start_url, tag, attr_dict, choose_dict, file_path, total_chapters, update_callback, log_callback, finish_callback):
+        super().__init__()
+        self.start_url = start_url
+        self.tag = tag
+        self.attr_dict = attr_dict
+        self.choose_dict = choose_dict
+        self.file_path = file_path
+        self.total_chapters = total_chapters
+        self.stop_requested = False
+        self.current_chapter = 0
+        self.update_callback = update_callback
+        self.log_callback = log_callback
+        self.finish_callback = finish_callback
+
+    def run(self):
+        try:
+            self.log_callback("开始下载小说...")
+            url = self.start_url
+            with open(self.file_path, 'w', encoding='utf-8') as f:
+                while url and not self.stop_requested:
+                    wait_time = random.randint(10, 20) / 10
+                    self.current_chapter += 1
+                    # 进度计算
+                    if self.total_chapters:
+                        progress = min(100, int(self.current_chapter / self.total_chapters * 100))
+                    else:
+                        progress = min(99, int(self.current_chapter / max(1, self.current_chapter) * 100))
+                    Clock.schedule_once(lambda dt: self.update_callback(progress))
+                    Clock.schedule_once(lambda dt: self.log_callback(f"正在下载第 {self.current_chapter} 章: {url}"))
+                    response = requests.get(url)
+                    response.encoding = response.apparent_encoding
+                    soup = BeautifulSoup(response.text, 'html.parser')
+                    content = soup.find(self.tag, self.attr_dict)
+                    if content:
+                        chapter_text = content.get_text()
+                        f.write(chapter_text + '\n\n')
+                        Clock.schedule_once(lambda dt: self.log_callback(f"成功下载第 {self.current_chapter} 章"))
+                    else:
+                        Clock.schedule_once(lambda dt: self.log_callback(f"未找到第 {self.current_chapter} 章内容: {url}"))
+                    # 查找下一章链接
+                    next_link = None
+                    next_texts = self.choose_dict
+                    for next_text in next_texts:
+                        next_link_element = soup.find('a', string=next_text)
+                        if next_link_element:
+                            next_link = urljoin(url, next_link_element.get('href'))
+                            break
+                    if not next_link:
+                        next_link_elements = soup.find_all('a')
+                        for element in next_link_elements:
+                            if '下一章' in element.get_text() or 'next' in element.get_text().lower():
+                                next_link = urljoin(url, element.get('href'))
+                                break
+                    url = next_link
+                    Clock.schedule_once(lambda dt: self.log_callback(f"正在延迟请求{wait_time}秒"))
+                    time.sleep(wait_time)
+            if not self.stop_requested:
+                Clock.schedule_once(lambda dt: self.finish_callback(True, f"小说下载完成！共下载 {self.current_chapter} 章"))
+            else:
+                Clock.schedule_once(lambda dt: self.finish_callback(False, "下载已取消"))
+        except Exception as e:
+            Clock.schedule_once(lambda dt: self.finish_callback(False, f"下载失败: {str(e)}"))
+
+    def stop(self):
+        self.stop_requested = True
+
+
+# 小说下载器的主窗口类，负责提供用户界面和控制下载流程
+class NovelDownloader(BoxLayout):
+    url_input = ObjectProperty(None)
+    tag_input = ObjectProperty(None)
+    attr_input = ObjectProperty(None)
+    choose_input = ObjectProperty(None)
+    path_input = ObjectProperty(None)
+    filename_input = ObjectProperty(None)
+    total_chapters_input = ObjectProperty(None)
+    progress_bar = ObjectProperty(None)
+    log_display = ObjectProperty(None)
+    download_btn = ObjectProperty(None)
+    stop_btn = ObjectProperty(None)
+    thread = None
+    full_file_path = ""
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.name = 'novel_download'
+        self.build_ui()  # 添加UI构建
+
+    def build_ui(self):
+        # 输入区域
+        grid = GridLayout(cols=2, spacing=6, size_hint_y=None)
+        grid.bind(minimum_height=grid.setter('height'))
+        self.url_input = TextInput(hint_text="小说起始 URL", multiline=False)
+        grid.add_widget(Label(text="小说起始 URL:", size_hint_y=None, height=30))
+        grid.add_widget(self.url_input)
+
+        self.tag_input = TextInput(hint_text="章节内容标签", multiline=False)
+        grid.add_widget(Label(text="章节内容标签:", size_hint_y=None, height=30))
+        grid.add_widget(self.tag_input)
+
+        self.attr_input = TextInput(hint_text="章节内容属性", multiline=False)
+        grid.add_widget(Label(text="章节内容属性:", size_hint_y=None, height=30))
+        grid.add_widget(self.attr_input)
+
+        self.choose_input = TextInput(hint_text="下一章按钮文字(逗号分隔)", multiline=False)
+        grid.add_widget(Label(text="下一章按钮文字:", size_hint_y=None, height=30))
+        grid.add_widget(self.choose_input)
+
+        self.path_input = TextInput(hint_text="保存路径", multiline=False)
+        grid.add_widget(Label(text="保存路径:", size_hint_y=None, height=30))
+        grid.add_widget(self.path_input)
+
+        self.filename_input = TextInput(text="小说.txt", multiline=False)
+        grid.add_widget(Label(text="保存文件名:", size_hint_y=None, height=30))
+        grid.add_widget(self.filename_input)
+
+        self.total_chapters_input = TextInput(text="0", multiline=False)
+        grid.add_widget(Label(text="总章节数(0自动估算):", size_hint_y=None, height=30))
+        grid.add_widget(self.total_chapters_input)
+        self.add_widget(grid)
+
+        # 按钮区域
+        btn_layout = BoxLayout(orientation='horizontal', size_hint_y=None, height=40, spacing=10)
+        self.download_btn = Button(text="开始下载")
+        self.stop_btn = Button(text="停止下载", disabled=True)
+        self.download_btn.bind(on_press=self.start_download)
+        self.stop_btn.bind(on_press=self.stop_download)
+        btn_layout.add_widget(self.download_btn)
+        btn_layout.add_widget(self.stop_btn)
+        self.add_widget(btn_layout)
+
+        # 进度条
+        self.progress_bar = ProgressBar(max=100, value=0, size_hint_y=None, height=30)
+        self.add_widget(self.progress_bar)
+
+        # 日志区域
+        self.log_display = Label(text="", size_hint_y=1, halign="left", valign="top", text_size=(Window.width-40, None))
+        scroll = ScrollView(size_hint=(1, 1))
+        scroll.add_widget(self.log_display)
+        self.add_widget(scroll)
+
+    def start_download(self, instance):
+        url = self.url_input.text.strip()
+        tag = self.tag_input.text.strip()
+        attr = self.attr_input.text.strip()
+        choose = self.choose_input.text.strip()
+        save_path = self.path_input.text.strip()
+        filename = self.filename_input.text.strip()
+        total_chapters = int(self.total_chapters_input.text.strip() or "0")
+        total_chapters = total_chapters if total_chapters > 0 else None
+
+        if not url or not tag or not attr:
+            self.show_popup("请输入完整的 URL、标签和属性信息")
+            return
+        if not save_path or not filename:
+            self.show_popup("请设置保存路径和文件名")
+            return
+
+        if not os.path.exists(save_path):
+            try:
+                os.makedirs(save_path)
+            except Exception as e:
+                self.show_popup(f"创建保存路径失败: {str(e)}")
+                return
+
+        self.full_file_path = os.path.join(save_path, filename)
+        attr_dict = {}
+        if '=' in attr:
+            parts = attr.split('=')
+            attr_dict[parts[0].strip()] = parts[1].strip()
+        choose_dict = [c.strip() for c in choose.replace('，', ',').split(',') if c.strip()]
+
+        self.download_btn.disabled = True
+        self.stop_btn.disabled = False
+        self.progress_bar.value = 0
+        self.log_display.text = ""
+
+        self.thread = NovelDownloadThread(
+            url, tag, attr_dict, choose_dict, self.full_file_path, total_chapters,
+            self.update_progress, self.append_log, self.download_finished)
+        self.thread.start()
+        self.append_log("开始准备下载...")
+        if total_chapters:
+            self.append_log(f"已设置总章节数: {total_chapters}")
+        else:
+            self.append_log("未设置总章节数，将使用估算进度")
+        self.append_log(f"文件将保存至: {self.full_file_path}")
+
+    def stop_download(self, instance):
+        if self.thread and self.thread.is_alive():
+            self.append_log("正在停止下载...")
+            self.thread.stop()
+            self.stop_btn.disabled = True
+
+    def update_progress(self, value):
+        self.progress_bar.value = value
+
+    def append_log(self, message):
+        old = self.log_display.text
+        t = time.strftime('%H:%M:%S')
+        self.log_display.text = (old + f"[{t}] {message}\n")[-2000:]  # 保留最近日志
+
+    def download_finished(self, success, message):
+        self.download_btn.disabled = False
+        self.stop_btn.disabled = True
+        self.progress_bar.value = 100 if success else 0
+        self.append_log(message)
+        if success:
+            self.show_popup(f"{message}\n文件已保存至: {self.full_file_path}")
+        else:
+            self.show_popup(message)
+
+    def show_popup(self, msg):
+        popup = Popup(title="提示", content=Label(text=msg), size_hint=(0.7, 0.3))
+        popup.open()
+
+
 # 主应用类
 class MainApp(App) :
     def build(self) :
@@ -1801,6 +1960,7 @@ class MainApp(App) :
         sm.add_widget(AdminWindow())
         sm.add_widget(BackgroundSettingsWindow())
         sm.add_widget(NewsWindow())
+        sm.add_widget(NovelDownloader)
 
         return sm
 
