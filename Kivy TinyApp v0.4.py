@@ -222,7 +222,7 @@ class BackgroundSettingsWindow(Screen) :
 
         # 颜色模式开关
         self.color_mode_switch = ToggleSwitch(
-            labels = ['颜色背景'] ,
+            label_text = '颜色背景' ,
             active = self.bg_mode == 'color' ,
             size = [dp(120) , dp(40)] ,
             thumb_size = [dp(20) , dp(20)]
@@ -231,7 +231,7 @@ class BackgroundSettingsWindow(Screen) :
 
         # 图片模式开关
         self.image_mode_switch = ToggleSwitch(
-            labels = ['图片背景'] ,
+            label_text = '图片背景' ,
             active = self.bg_mode == 'image' ,
             size = [dp(120) , dp(40)] ,
             thumb_size = [dp(20) , dp(20)]
