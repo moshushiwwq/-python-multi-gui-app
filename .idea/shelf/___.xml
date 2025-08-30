@@ -1,0 +1,46 @@
+<changelist name="在变基之前未提交的更改_[更改]" date="1755336507810" recycled="false" toDelete="true">
+  <option name="PATH" value="$PROJECT_DIR$/.idea/shelf/在变基之前未提交的更改_[更改]/shelved.patch" />
+  <option name="DESCRIPTION" value="在变基之前未提交的更改 [更改]" />
+  <binary>
+    <option name="BEFORE_PATH" value="video_output/video_20250726_202759.mp4" />
+  </binary>
+  <binary>
+    <option name="BEFORE_PATH" value="ffmpeg-7.1.1-full_build/presets/libvpx-360p.ffpreset" />
+  </binary>
+  <binary>
+    <option name="BEFORE_PATH" value="ffmpeg-7.1.1-full_build/有问题点我！安装教程！.png" />
+  </binary>
+  <binary>
+    <option name="BEFORE_PATH" value="video_output/video_20250721_233009.mp4" />
+  </binary>
+  <binary>
+    <option name="BEFORE_PATH" value="ffmpeg-7.1.1-full_build/presets/libvpx-1080p50_60.ffpreset" />
+  </binary>
+  <binary>
+    <option name="BEFORE_PATH" value="ffmpeg-7.1.1-full_build/bin/ffprobe.exe" />
+  </binary>
+  <binary>
+    <option name="BEFORE_PATH" value="video_output/video_20250726_214819.unknown" />
+  </binary>
+  <binary>
+    <option name="BEFORE_PATH" value="ffmpeg-7.1.1-full_build/bin/ffplay.exe" />
+  </binary>
+  <binary>
+    <option name="BEFORE_PATH" value="ffmpeg-7.1.1-full_build/bin/ffmpeg.exe" />
+  </binary>
+  <binary>
+    <option name="BEFORE_PATH" value="ffmpeg-7.1.1-full_build/presets/libvpx-720p.ffpreset" />
+  </binary>
+  <binary>
+    <option name="BEFORE_PATH" value="ffmpeg-7.1.1-full_build/LICENSE" />
+  </binary>
+  <binary>
+    <option name="BEFORE_PATH" value="ffmpeg-7.1.1-full_build/presets/libvpx-1080p.ffpreset" />
+  </binary>
+  <binary>
+    <option name="BEFORE_PATH" value="ffmpeg-7.1.1-full_build/presets/libvpx-720p50_60.ffpreset" />
+  </binary>
+  <binary>
+    <option name="BEFORE_PATH" value="video_output/audio_20250723_223248.mp3" />
+  </binary>
+</changelist>
